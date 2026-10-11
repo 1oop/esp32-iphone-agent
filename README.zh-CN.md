@@ -13,7 +13,7 @@
 
 </div>
 
-<!-- demo image: docs/images/demo.png -->
+<p align="center"><img src="docs/images/demo.png" alt="演示：插在 iPhone 上的 XIAO ESP32S3，以及网页界面（实时画面、实时日志、步骤截图）" width="100%"></p>
 
 Agent 通过 AirPlay 屏幕镜像"看"手机，通过一块插在手机 USB 口上的 ESP32-S3 小板子"摸"手机：板子对手机来说就是一个
 USB 鼠标加键盘。大脑可以是任何兼容 OpenAI 接口的视觉模型，云端 API 或自己部署的模型都行。

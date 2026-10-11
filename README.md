@@ -13,7 +13,7 @@ English · [简体中文](README.zh-CN.md)
 
 </div>
 
-<!-- demo image: docs/images/demo.png -->
+<p align="center"><img src="docs/images/demo.png" alt="Demo: an XIAO ESP32S3 plugged into an iPhone, and the web UI with the live screen, live log and step screenshots" width="100%"></p>
 
 The agent sees the phone through AirPlay screen mirroring and touches it through a tiny ESP32-S3 board that
 plugs into the phone's USB port as a mouse and keyboard. Any OpenAI-compatible vision model can be the brain —
