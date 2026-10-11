@@ -13,7 +13,7 @@
 
 </div>
 
-<p align="center"><img src="docs/images/demo.png" alt="演示：插在 iPhone 上的 XIAO ESP32S3，以及网页界面（实时画面、实时日志、步骤截图）" width="100%"></p>
+<p align="center"><img src="docs/images/demo.png" alt="一次真实运行后的网页界面：实时画面、实时日志、计划，以及每一步的截图和点按位置" width="100%"></p>
 
 Agent 通过 AirPlay 屏幕镜像"看"手机，通过一块插在手机 USB 口上的 ESP32-S3 小板子"摸"手机：板子对手机来说就是一个
 USB 鼠标加键盘。大脑可以是任何兼容 OpenAI 接口的视觉模型，云端 API 或自己部署的模型都行。
@@ -54,6 +54,8 @@ USB 鼠标加键盘。大脑可以是任何兼容 OpenAI 接口的视觉模型�
 | **iPhone** | USB-C 机型直接插；Lightning 机型用 Lightning 转 USB 相机转换器。板子由手机供电。 |
 | **电脑** | macOS 或 Linux，和手机在同一个局域网；运行 UxPlay 和服务端。 |
 | **视觉模型** | 任何支持图片输入、兼容 OpenAI 接口的对话模型。本地部署是可选的。 |
+
+<p align="center"><img src="docs/images/setup.png" alt="插在 iPhone 上的 XIAO ESP32S3，旁边是网页界面" width="100%"></p>
 
 如果希望插着板子时手机还能充电，用一个支持 PD 充电直通的 USB-C 扩展坞。
 

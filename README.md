@@ -13,7 +13,7 @@ English · [简体中文](README.zh-CN.md)
 
 </div>
 
-<p align="center"><img src="docs/images/demo.png" alt="Demo: an XIAO ESP32S3 plugged into an iPhone, and the web UI with the live screen, live log and step screenshots" width="100%"></p>
+<p align="center"><img src="docs/images/demo.png" alt="The web UI after a real run: live phone screen, live log, plan, and every step's screenshot with the tap drawn on it" width="100%"></p>
 
 The agent sees the phone through AirPlay screen mirroring and touches it through a tiny ESP32-S3 board that
 plugs into the phone's USB port as a mouse and keyboard. Any OpenAI-compatible vision model can be the brain —
@@ -59,6 +59,8 @@ uses the same paths a person uses — the screen and a pointer — so the phone 
 | **iPhone** | USB-C models plug in directly. Lightning models need a Lightning to USB Camera Adapter. The phone powers the board. |
 | **Computer** | macOS or Linux, on the same network as the phone; runs UxPlay and the server. |
 | **Vision model** | Any OpenAI-compatible chat API that accepts images. Running a model locally is optional. |
+
+<p align="center"><img src="docs/images/setup.png" alt="A XIAO ESP32S3 plugged into an iPhone, next to the web UI" width="100%"></p>
 
 Use a USB-C hub with power pass-through if the phone should keep charging while the board is plugged in.
 
