@@ -29,8 +29,9 @@ THINK: <plain English a non-technical user understands: first check your last ac
        screen (did it do what you intended?), then what you do now and why>
 DO: <action>
 
-Usually give ONE DO line. When the next few actions do not depend on seeing the result
-(e.g. several drawing strokes, or typing then pressing enter), give up to 6 DO lines; they run in order.
+Give several DO lines (up to 6, run in order) whenever the next actions do not depend on seeing the
+result: e.g. ticking several visible checkboxes or days, several drawing strokes, typing then pressing enter.
+Give ONE DO line when the next action depends on what this one opens or changes.
 
 Coordinates are integers 0-1000 relative to the screenshot (x left->right, y top->bottom).
 Aim at the visual center of the element you want, not its edge or its label.
@@ -38,10 +39,19 @@ Look before you act: describe what is really on the screen now, not what you exp
 Each recent action says whether the screen changed after it. If it did NOT change, the action
 missed or had no effect: do not assume it worked; aim again more precisely or try another way.
 Only type when a text field is visibly focused (the keyboard is showing).
+Swipes have no momentum: content moves exactly as far as the finger and stops. Prefer short swipes
+(100-250 units) and check the result; repeat if needed rather than one big swipe.
+Time or number wheels (e.g. an alarm's time): first tap the number in the wheel's center row and type
+the digits (e.g. type 0700); check the result. Only if typing does not work, swipe inside that column:
+measure the row spacing from two neighbouring numbers and swipe k times that spacing to move k rows.
+Looking for an item in a list: scroll less than one screen at a time so nothing is skipped, and read every
+visible item. If you reached both ends of the list and the item is not there, stop with fail and name the
+closest options you saw; do not keep scrolling.
 Only tap things you can actually see on this screenshot; never guess where a button might be.
 If you are unsure what an element does, tap it alone (one DO line) and check the result next round.
 Actions:
-  tap X Y
+  tap X Y [precise]         (precise: the pointer is located and corrected before tapping, about 1 s slower;
+                             use it for small or tightly packed targets: list rows, checkmarks, toggles, small icons)
   swipe X1 Y1 X2 Y2         (finger moves from X1,Y1 to X2,Y2: "swipe down" means Y2 > Y1)
   path X1 Y1 X2 Y2 X3 Y3 …  (one continuous stroke through 2-20 points, for drawing)
   circle X Y R              (draw a circle centered at X Y; R is the radius in x units)
@@ -81,7 +91,10 @@ def parse_command(line: str) -> dict:
         return {"action": name, "points": [numbers[i:i + 2] for i in range(0, len(numbers), 2)][:20]}
     if len(numbers) != len(keys):
         raise ValueError(f"{name} needs {len(keys)} numbers: {line[:100]}")
-    return {"action": name, **dict(zip(keys, numbers, strict=True))}
+    action = {"action": name, **dict(zip(keys, numbers, strict=True))}
+    if name == "tap" and "precise" in rest.lower():
+        action["precise"] = True
+    return action
 
 
 def parse_actions(text: str) -> list[dict]:
@@ -101,6 +114,11 @@ def parse_plan(text: str) -> tuple[str, str]:
     return (m.group(1).strip(), m.group(2).strip()) if m else (text.strip(), text.strip())
 
 
+def _key(step: dict) -> dict:
+    """The action itself, without thoughts, timings and other bookkeeping."""
+    return {k: v for k, v in step.items() if k not in META}
+
+
 class BlindError(RuntimeError):
     """The screen feed is gone; acting now would be guessing."""
 
@@ -113,6 +131,7 @@ class Agent:
         self.max_steps, self.max_failures = max_steps, max_failures
         self.task, self.plan, self.steps = "", "", []
         self.shots: dict[int, bytes] = {}  # step index -> screenshot the model decided on
+        self._pointer = (0.0, 0.0)  # last pointer position (screen fractions)
         self._job: asyncio.Task | None = None
 
     @property
@@ -125,6 +144,7 @@ class Agent:
         if not self.screen.live:
             raise RuntimeError("no phone screen: start Screen Mirroring first")
         self.task, self.plan, self.steps, self.shots = task, "", [], {}
+        self._pointer = (0.0, 0.0)
         self.trace.start(task)
         self._job = asyncio.create_task(self._run())
 
@@ -185,6 +205,7 @@ class Agent:
         """One see-think-act round (one or more actions). Returns True when the task is over."""
         acts = await self._next_actions()
         seen = acts[0]["_shot"]
+        spots = [self._pointer]  # where the pointer was and goes: pointer moves are not screen changes
         stuck = self._repeating(acts[0])
         for i, act in enumerate(acts):
             name = act["action"]
@@ -196,23 +217,34 @@ class Agent:
                 started = time.time()
                 await self._do(act)
                 act["act_s"] = round(time.time() - started, 2)
+                spots += _pointer_path(act)
+                self._pointer = spots[-1]
             self._record(act.pop("_shot"), **act)
             if name in ("done", "fail"):
                 return True
-            if name == "tap" and i < len(acts) - 1:  # verify before building on a tap that may have missed
+            following = acts[i + 1]["action"] if i < len(acts) - 1 else None
+            if name == "tap" and following in ("type", "key"):  # typing into a field that a missed tap never opened
                 await self.screen.settled()
-                if not vision.changed(seen, self.screen.frame):
+                if not vision.changed(seen, self.screen.frame, ignore=tuple(spots)):
                     self.steps[-1]["changed"] = False
                     return False  # skip the rest; the actor looks again
         await self.screen.settled()
-        self.steps[-1]["changed"] = vision.changed(seen, self.screen.frame)  # feedback for the next round
+        # feedback for the next round
+        self.steps[-1]["changed"] = vision.changed(seen, self.screen.frame, ignore=tuple(spots))
         return False
 
+    def _missed(self) -> bool:
+        """The previous round changed nothing on screen, so a tap may have landed off target."""
+        return bool(self.steps) and self.steps[-1].get("changed") is False
+
     def _repeating(self, act: dict, limit: int = 3) -> bool:
-        """True when the actor picks the same action as its last limit-1 moves."""
-        key = lambda s: {k: v for k, v in s.items() if k not in META}  # noqa: E731
+        """True when the actor picks the same action as its last limit-1 moves and the last one did nothing.
+
+        Repeating a move that still changes the screen (e.g. scrolling down a long list) is progress, not a loop.
+        """
         moves = [s for s in self.steps if "plan" not in s][-(limit - 1):]
-        return len(moves) == limit - 1 and all(key(m) == key(act) for m in moves)
+        return (len(moves) == limit - 1 and all(_key(m) == _key(act) for m in moves)
+                and moves[-1].get("changed") is not True)
 
     async def _replan(self, stuck: bool = False) -> None:
         prompt = f"Goal: {self.task}"
@@ -226,7 +258,8 @@ class Agent:
                      think_s=seconds)
 
     async def _next_actions(self) -> list[dict]:
-        hidden = ("t", "plan", "think_s", "act_s", "shot", "thought_zh", "changed")
+        # actions and their effect only: echoing earlier thoughts makes the model repeat them instead of looking
+        hidden = ("t", "plan", "plan_zh", "think_s", "act_s", "shot", "thought", "thought_zh", "changed")
         effect = {True: " -> screen changed", False: " -> screen did NOT change"}
         history = "\n".join(json.dumps({k: v for k, v in s.items() if k not in hidden})[:300]
                             + effect.get(s.get("changed"), "")
@@ -239,6 +272,11 @@ class Agent:
             except ValueError as e:
                 log.warning("unparseable actor reply (%s): %s", e, reply[:200])
                 continue
+            if self._missed() and _key(acts[0]) == _key(self.steps[-1]):  # same move that just did nothing
+                log.info("actor repeated an action that changed nothing; asking for another")
+                prompt += (f"\n\nYou just proposed {json.dumps(_key(acts[0]))} again, but it changed nothing last "
+                           "time. Choose a different action (another position, a shorter swipe, or another way).")
+                continue
             acts[0]["think_s"] = seconds
             return [{**a, "_shot": frame} for a in acts]  # every action is drawn on the same screenshot
         raise ValueError(f"actor gave no valid action: {reply[:200]}")
@@ -246,7 +284,7 @@ class Agent:
     async def _do(self, a: dict) -> None:
         p = lambda k: a[k] / 1000  # noqa: E731
         match a["action"]:
-            case "tap": await self.phone.tap(p("x"), p("y"))
+            case "tap": await self.phone.tap(p("x"), p("y"), aim=a.get("precise", False) or self._missed())
             case "swipe": await self.phone.swipe(p("x1"), p("y1"), p("x2"), p("y2"))
             case "path": await self.phone.drag([(x / 1000, y / 1000) for x, y in a["points"]])
             case "circle": await self.phone.drag(circle(p("x"), p("y"), p("r"), self.screen.aspect))
@@ -256,6 +294,19 @@ class Agent:
             case "back": await self.phone.go_back()
             case "wait": pass
             case other: raise ValueError(f"unknown action {other!r}")
+
+
+def _pointer_path(act: dict) -> list[tuple[float, float]]:
+    """Screen points (fractions) the pointer passes through for one action."""
+    f = lambda x, y: (x / 1000, y / 1000)  # noqa: E731
+    match act["action"]:
+        case "tap": return [f(act["x"], act["y"])]
+        case "swipe": return [f(act["x1"], act["y1"]), f(act["x2"], act["y2"])]
+        case "path": return [f(*p) for p in act["points"]]
+        case "circle": return [f(act["x"] + act["r"], act["y"])]
+        case "home": return [(0.5, 0.995), (0.5, 0.6)]
+        case "back": return [(0.005, 0.45), (0.6, 0.45)]
+        case _: return []
 
 
 def circle(x: float, y: float, r: float, aspect: float, n: int = 24) -> list[tuple[float, float]]:
