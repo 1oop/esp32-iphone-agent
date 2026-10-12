@@ -13,7 +13,13 @@
 
 </div>
 
-<p align="center"><img src="docs/images/demo.png" alt="一次真实运行后的网页界面：实时画面、实时日志、计划，以及每一步的截图和点按位置" width="100%"></p>
+<p align="center"><img src="docs/images/demo.png" alt="示例 1：在白板里画完笑脸后的网页界面，包括实时画面、实时日志、计划和每一步的截图" width="100%"></p>
+
+**示例 1：在画布上画画。** *"打开白板画一个笑脸"*：Agent 搜索并打开白板 App，用连续的笔画画出笑脸。每一步的截图都会留在截图墙上，上面画出了点按或笔画的位置。
+
+<p align="center"><img src="docs/images/example-alarm.png" alt="示例 2：插着 XIAO ESP32S3 的 iPhone 正在设置每天重复的闹钟，旁边是网页界面" width="100%"></p>
+
+**示例 2：设置闹钟。** *"设置早上 7:00 的闹钟，每天重复，然后保存"*：Agent 打开时钟，在时间滚轮里直接输入 0700，在「重复」里一次连续勾选多天，然后保存。左边是插着 ESP32 的真实 iPhone，右边是网页界面。
 
 Agent 通过 AirPlay 屏幕镜像"看"手机，通过一块插在手机 USB 口上的 ESP32-S3 小板子"摸"手机：板子对手机来说就是一个
 USB 鼠标加键盘。大脑可以是任何兼容 OpenAI 接口的视觉模型，云端 API 或自己部署的模型都行。

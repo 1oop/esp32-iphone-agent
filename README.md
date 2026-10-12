@@ -13,7 +13,13 @@ English · [简体中文](README.zh-CN.md)
 
 </div>
 
-<p align="center"><img src="docs/images/demo.png" alt="The web UI after a real run: live phone screen, live log, plan, and every step's screenshot with the tap drawn on it" width="100%"></p>
+<p align="center"><img src="docs/images/demo.png" alt="Example 1: the web UI after drawing a smiley face in Whiteboard, with the live screen, live log, plan and step screenshots" width="100%"></p>
+
+**Example 1 — draw on a canvas.** *"Open Whiteboard and draw a smiley face"*: the agent searches for the app, opens it and draws the face with continuous strokes. Every step's screenshot, with its tap or stroke drawn on top, stays on the step wall.
+
+<p align="center"><img src="docs/images/example-alarm.png" alt="Example 2: an iPhone with a XIAO ESP32S3 plugged in, setting an alarm that repeats every day, next to the web UI" width="100%"></p>
+
+**Example 2 — set an alarm.** *"Set an alarm for 7:00 AM that repeats every day, then save it"*: the agent opens Clock, types 0700 into the time wheel, ticks the days under Repeat several taps at a time, and saves. Left: the real iPhone with the ESP32 plugged in; right: the web UI.
 
 The agent sees the phone through AirPlay screen mirroring and touches it through a tiny ESP32-S3 board that
 plugs into the phone's USB port as a mouse and keyboard. Any OpenAI-compatible vision model can be the brain —
