@@ -1,6 +1,6 @@
 :root {
   --bg: #fff; --fg: #111; --muted: #777; --line: #e6e6e6; --soft: #f6f6f6;
-  --mark: #ff3b30; --ok: #1a7f37; --hl: #ffd400;
+  --mark: #ff3b30; --ok: #1a7f37; --hl: #ffd400; --tap: #ff1f1f;
 }
 @media (prefers-color-scheme: dark) {
   :root { --bg: #0d0d0d; --fg: #eee; --muted: #888; --line: #262626; --soft: #171717; --ok: #3fb950; }
@@ -25,17 +25,20 @@ main { display: grid; grid-template-columns: auto minmax(300px, 1fr) minmax(420p
 .col:last-child { border-right: 0; }
 
 /* 1. phone */
-.phone { display: flex; flex-direction: column; align-items: center; gap: 10px; overflow: hidden; }
+.phone { display: flex; flex-direction: column; align-items: center; gap: 10px; overflow-y: auto; }
 .screen { position: relative; height: calc(100vh - 165px); aspect-ratio: 498 / 1080; flex: none;
           background: var(--soft); border: 9px solid var(--fg); border-radius: 42px; overflow: hidden; touch-action: none; }
 .screen img { width: 100%; height: 100%; object-fit: contain; display: block; cursor: crosshair; user-select: none; -webkit-user-drag: none; }
 .hint { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); pointer-events: none; }
 .caption { color: var(--muted); font-size: 12px; margin: 0; }
+.caption.callout { color: #000; background: var(--hl); font-size: 14px; font-weight: 600; padding: 6px 12px; border-radius: 8px; }
+.screen.calibrating { border-color: var(--hl); }
 .estop { width: 100%; background: var(--mark); color: #fff; border-color: var(--mark); font-weight: 600; padding: 10px; }
 .estop:hover { border-color: var(--fg); }
 .manual { width: 100%; color: var(--muted); }
 .manual summary { cursor: pointer; text-align: center; }
 .manual .row { margin-top: 8px; }
+.phone:has(.manual[open]) .screen { height: calc(100vh - 330px); }  /* make room for the controls */
 
 /* 2. log */
 .log { display: flex; flex-direction: column; padding: 0; }
@@ -61,8 +64,20 @@ main { display: grid; grid-template-columns: auto minmax(300px, 1fr) minmax(420p
 .models span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
 .models b { font-size: 13px; white-space: nowrap; }
 .models small { font: 11px ui-monospace, monospace; color: var(--muted); }
-.hand { position: absolute; transform: translate(-30%, -8%); font-size: 22px; line-height: 1; filter: drop-shadow(0 1px 1px #000); }
-dialog .hand { font-size: 44px; }
+.hand { position: absolute; transform: translate(-30%, -8%); font-size: 34px; line-height: 1;
+        filter: drop-shadow(0 0 2px #000) drop-shadow(0 2px 2px #000); animation: press 1.4s ease-in-out infinite; }
+dialog .hand { font-size: 72px; }
+.motion { font-size: 12px; padding: 4px 10px; flex: none; }
+
+/* motion: a ripple spreads from each tap, dashes travel along swipes and strokes */
+.ripple { transform-box: fill-box; transform-origin: center; animation: ripple 1.4s ease-out infinite; }
+.flow { stroke-dasharray: 6 10; animation: flow 0.8s linear infinite; }
+@keyframes ripple { from { transform: scale(0.5); opacity: 1; } to { transform: scale(2.6); opacity: 0; } }
+@keyframes flow { to { stroke-dashoffset: -16; } }
+@keyframes press { 0%, 100% { transform: translate(-30%, -8%); } 45% { transform: translate(-30%, -20%) scale(1.06); } }
+body.still .ripple { animation: none; opacity: 0; }
+body.still .flow { animation: none; stroke-dasharray: none; opacity: 0; }
+body.still .hand { animation: none; }
 .lang button { border-radius: 0; padding: 4px 10px; font-size: 12px; }
 .lang button:first-child { border-radius: 8px 0 0 8px; }
 .lang button:last-child { border-radius: 0 8px 8px 0; border-left: 0; }

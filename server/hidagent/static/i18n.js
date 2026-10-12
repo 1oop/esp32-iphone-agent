@@ -2,7 +2,7 @@
 const I18N = {
   en: {
     waiting: "Waiting for the phone screen…", liveCaption: "Live screen · click to tap, drag to swipe",
-    estop: "■ Emergency stop (Esc)", estopHint: "Stops the AI and lets go of the screen",
+    estop: "■ Emergency stop (Esc)", motionOn: "Motion: on", motionOff: "Motion: off", estopHint: "Stops the AI and lets go of the screen",
     clear: "Clear history",
     manual: "Manual controls", home: "Home", back: "Back", calibrate: "Calibrate", type: "Type", press: "Press",
     typePh: "Type text", keyPh: "Key: enter, cmd+a…", log: "Live log",
@@ -13,14 +13,15 @@ const I18N = {
     taskPh: "e.g. Open Whiteboard and draw a smiley face", start: "Start", stop: "Stop",
     status: "status", actions: "actions", total: "total time", perAction: "per action", plan: "Plan",
     idle: "Idle", working: "Working…", done: "Done", gaveUp: "Gave up", stopped: "Stopped", errorState: "Error",
-    calNow: "Now click exactly on the round pointer in the live screen.", calOk: "Calibrated. You're ready.",
+    calNow: "Now click exactly on the round pointer in the live screen.", calFinding: "Finding the pointer…", calOk: "Calibrated. You're ready.",
     needTask: "Describe what the phone should do first.", thinking: "thinking", doing: "doing",
     step: "Step", planner: "Planner", decision: "Decision · planner", executor: "Action · actor", avg: "avg",
-    examples: ["Open Settings and go to Wi-Fi", "Open Whiteboard and draw a smiley face", "Open Notes and write \"hello\""],
+    examples: ["Set an alarm for 7:00 AM that repeats every day (check all days under Repeat), then save it", "Open Whiteboard and draw a smiley face",
+      "Open Settings and go to Wi-Fi", "Open Notes and write \"hello\""],
   },
   zh: {
     waiting: "等待手机画面…", liveCaption: "实时画面 · 点击 = 点按，拖动 = 滑动",
-    estop: "■ 紧急停止（Esc）", estopHint: "立即停止 AI，并松开屏幕",
+    estop: "■ 紧急停止（Esc）", motionOn: "动效：开", motionOff: "动效：关", estopHint: "立即停止 AI，并松开屏幕",
     clear: "清空记录",
     manual: "手动操控", home: "主屏幕", back: "返回", calibrate: "校准", type: "输入", press: "按键",
     typePh: "输入文字", keyPh: "按键：enter、cmd+a…", log: "实时日志",
@@ -31,10 +32,10 @@ const I18N = {
     taskPh: "例如：打开白板画一个笑脸", start: "开始", stop: "停止",
     status: "状态", actions: "动作数", total: "总用时", perAction: "每步", plan: "计划",
     idle: "空闲", working: "进行中…", done: "完成", gaveUp: "放弃", stopped: "已停止", errorState: "出错",
-    calNow: "现在在实时画面里精确点一下圆形指针。", calOk: "校准完成，可以开始了。",
+    calNow: "现在在实时画面里精确点一下圆形指针。", calFinding: "正在找指针…", calOk: "校准完成，可以开始了。",
     needTask: "先写一下要让手机做什么。", thinking: "思考", doing: "执行",
     step: "第", planner: "规划", decision: "决策 · 规划模型", executor: "执行 · 动作模型", avg: "平均",
-    examples: ["打开设置，进入 Wi-Fi", "打开白板画一个笑脸", "打开备忘录写 hello"],
+    examples: ["设置早上 7:00 的闹钟，在「重复」里把每一天都勾上，然后保存", "打开白板画一个笑脸", "打开设置，进入 Wi-Fi", "打开备忘录写 hello"],
   },
 };
 

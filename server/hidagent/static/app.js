@@ -19,12 +19,27 @@ function applyLang() {
     return b;
   }));
   shown = "";  // re-render steps in the new language
+  if (typeof applyMotion === "function") applyMotion();
 }
 document.querySelectorAll("#lang button").forEach((b) => b.addEventListener("click", () => {
   lang = b.dataset.lang;
   try { localStorage.setItem("lang", lang); } catch { /* private mode */ }
   applyLang();
 }));
+
+// ---- motion (tap ripples, flowing swipe paths); remembered per browser -------------------
+
+let motion = !matchMedia("(prefers-reduced-motion: reduce)").matches;
+try { motion = (localStorage.getItem("motion") || (motion ? "on" : "off")) === "on"; } catch { /* private mode */ }
+function applyMotion() {
+  document.body.classList.toggle("still", !motion);
+  $("motion").textContent = t(motion ? "motionOn" : "motionOff");
+}
+$("motion").addEventListener("click", () => {
+  motion = !motion;
+  try { localStorage.setItem("motion", motion ? "on" : "off"); } catch { /* private mode */ }
+  applyMotion();
+});
 
 const say = (key) => { $("msg").textContent = key ? t(key) : ""; };
 async function post(path, body) {
@@ -45,11 +60,12 @@ const why = (s) => (lang === "zh" && s.thought_zh) || s.thought || s.answer || s
 const planText = (s) => (lang === "zh" && s.plan_zh) || s.plan || "";
 const times = (s) => [s.think_s != null && `${t("thinking")} ${fmt(s.think_s)}`, s.act_s != null && `${t("doing")} ${fmt(s.act_s)}`].filter(Boolean).join(" · ");
 const where = (s) => ({
-  tap: () => ` (${s.x}, ${s.y})`, swipe: () => ` (${s.x1}, ${s.y1}) → (${s.x2}, ${s.y2})`,
+  tap: () => ` (${s.x}, ${s.y})${s.precise ? " · precise" : ""}`, swipe: () => ` (${s.x1}, ${s.y1}) → (${s.x2}, ${s.y2})`,
   path: () => ` · ${s.points.length} pts`, circle: () => ` (${s.x}, ${s.y}) r=${s.r}`,
 }[s.action] || (() => ""))();
 
 // Draw what the AI did on its screenshot (coordinates are 0-1000): yellow on black, plus a hand for taps.
+// .ripple and .flow shapes are animated in CSS; body.still turns the motion off.
 let aspect = 0.461;  // frame width / height, from the server
 function overlay(s) {
   const svg = (inner) => `<svg viewBox="0 0 1000 1000" preserveAspectRatio="none">${inner}</svg>`;
@@ -58,17 +74,22 @@ function overlay(s) {
      ${shape.replace("/>", ` style="stroke:var(--hl);fill:none" stroke-width="5" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"/>`)}`;
   const dot = (x, y, r) => `<ellipse cx="${x}" cy="${y}" rx="${r}" ry="${r * aspect}" style="fill:var(--hl);stroke:#000" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
   const pts = (list) => list.map(([x, y]) => `${x},${y}`).join(" ");
+  const flow = (list) =>  // dashes that travel along the stroke, in its direction
+    `<polyline class="flow" points="${pts(list)}" style="stroke:#000;fill:none" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linecap="round"/>`;
   switch (s.action) {
-    case "tap":
-      return svg(stroke(`<ellipse cx="${s.x}" cy="${s.y}" rx="70" ry="${70 * aspect}"/>`) + dot(s.x, s.y, 16));
+    case "tap": {  // red, so the tap point stands out from the yellow swipe paths
+      const ring = (cls, r, w, color) => `<ellipse class="${cls}" cx="${s.x}" cy="${s.y}" rx="${r}" ry="${r * aspect}" style="stroke:${color};fill:none" stroke-width="${w}" vector-effect="non-scaling-stroke"/>`;
+      return svg(ring("ripple", 100, 7, "var(--tap)") + ring("", 100, 11, "#000") + ring("", 100, 6, "var(--tap)") +
+        `<ellipse cx="${s.x}" cy="${s.y}" rx="22" ry="${22 * aspect}" style="fill:var(--tap);stroke:#fff" stroke-width="3" vector-effect="non-scaling-stroke"/>`);
+    }
     case "swipe": {
       const a = Math.atan2((s.y2 - s.y1) / aspect, s.x2 - s.x1), l = 45;
       const head = (d) => [s.x2 - l * Math.cos(a + d), s.y2 - l * aspect * Math.sin(a + d)];
-      return svg(stroke(`<polyline points="${pts([[s.x1, s.y1], [s.x2, s.y2]])}"/>`) +
+      return svg(stroke(`<polyline points="${pts([[s.x1, s.y1], [s.x2, s.y2]])}"/>`) + flow([[s.x1, s.y1], [s.x2, s.y2]]) +
         stroke(`<polyline points="${pts([head(0.5), [s.x2, s.y2], head(-0.5)])}"/>`) + dot(s.x1, s.y1, 14));
     }
     case "path":
-      return svg(stroke(`<polyline points="${pts(s.points)}"/>`) + dot(...s.points[0], 12));
+      return svg(stroke(`<polyline points="${pts(s.points)}"/>`) + flow(s.points) + dot(...s.points[0], 12));
     case "circle":
       return svg(stroke(`<ellipse cx="${s.x}" cy="${s.y}" rx="${s.r}" ry="${s.r * aspect}"/>`));
     default:
@@ -154,7 +175,8 @@ live.addEventListener("pointerup", async (e) => {
   down = null;
   if (calibrating) {
     calibrating = false;
-    if (await post("/api/calibrate/finish", up)) say("calOk");
+    const ok = await post("/api/calibrate/finish", up);
+    calibrationHint(ok ? "calOk" : null);
   } else if (Math.hypot(up.x - from.x, up.y - from.y) < 0.02) {
     post("/api/tap", up);
   } else {
@@ -189,7 +211,21 @@ async function refreshLive() {
 // ---- controls ------------------------------------------------------------------------
 
 document.querySelectorAll("[data-post]").forEach((b) => b.addEventListener("click", () => post(b.dataset.post)));
-$("cal").addEventListener("click", async () => { if (await post("/api/calibrate/start")) { calibrating = true; say("calNow"); } });
+// Calibration instructions show right under the phone, where the user is looking.
+function calibrationHint(key) {
+  $("caption").textContent = t(key || "liveCaption");
+  $("caption").classList.toggle("callout", Boolean(key));
+  live.parentElement.classList.toggle("calibrating", key === "calNow");
+  if (key === "calOk") setTimeout(() => calibrationHint(null), 4000);
+}
+$("cal").addEventListener("click", async () => {
+  calibrationHint("calFinding");
+  const r = await post("/api/calibrate/start");
+  if (!r) return calibrationHint(null);
+  if (r.auto) return calibrationHint("calOk");  // found the pointer by itself
+  calibrating = true;
+  calibrationHint("calNow");
+});
 $("type").addEventListener("click", async () => { if (await post("/api/type", { text: $("text").value })) $("text").value = ""; });
 $("press").addEventListener("click", () => post("/api/key", { text: $("key").value }));
 function start(task) {
@@ -198,7 +234,9 @@ function start(task) {
 }
 $("run").addEventListener("click", () => start($("task").value.trim()));
 $("stop").addEventListener("click", () => post("/api/agent/stop"));
-$("clear").addEventListener("click", () => post("/api/agent/clear"));
+$("clear").addEventListener("click", async () => {
+  if (await post("/api/agent/clear")) { $("task").value = ""; say(null); }
+});
 $("estop").addEventListener("click", () => post("/api/agent/stop"));
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("zoom").open) post("/api/agent/stop"); });
 
@@ -261,5 +299,6 @@ async function poll() {
 }
 
 applyLang();
+applyMotion();
 refreshLive();
 poll();
