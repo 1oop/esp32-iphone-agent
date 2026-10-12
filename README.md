@@ -2,7 +2,7 @@
 
 # ESP32 iPhone Agent
 
-**Let an AI model use a real iPhone — with a $7 ESP32 and no developer account, no Xcode, no jailbreak.**
+**Let an AI model use a real iPhone — with a $7 ESP32. No Mac, no developer account, no jailbreak.**
 
 English · [简体中文](README.zh-CN.md)
 
