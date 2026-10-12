@@ -6,6 +6,8 @@
 
 English · [简体中文](README.zh-CN.md)
 
+Demo video and updates: [X @iamhenryyuan](https://x.com/iamhenryyuan) · [Xiaohongshu 袁老板讲黑客松](https://www.xiaohongshu.com/user/profile/5eb444030000000001000194) · [YouTube demo](https://www.youtube.com/watch?v=Ly4im-P4jYg)
+
 [![CI](https://github.com/onehumanbeing/esp32-iphone-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/onehumanbeing/esp32-iphone-agent/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
