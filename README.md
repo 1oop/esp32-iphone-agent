@@ -63,7 +63,7 @@ uses the same paths a person uses — the screen and a pointer — so the phone 
 
 | Part | Notes |
 |---|---|
-| **ESP32-S3 board** | Tested with a bare [Seeed Studio XIAO ESP32S3](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/) (~$7, no camera add-on needed); attach the antenna that comes with it, as the XIAO has no on-board antenna and Wi-Fi drops often without it. Any ESP32-S3 board whose USB-C port is wired to the S3's native USB works. |
+| **ESP32-S3 board** | Tested with a [Seeed Studio XIAO ESP32S3](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/), plain version without pre-soldered headers (not the Sense camera version, not the Plus). About $7 from Seeed, or about ¥40-50 on Taobao in China (search "XIAO ESP32S3"). Any ESP32-S3 board whose USB-C port is wired to the S3's native USB works. |
 | **iPhone** | USB-C models plug in directly. Lightning models need a Lightning to USB Camera Adapter. The phone powers the board. |
 | **Computer** | macOS or Linux, on the same network as the phone; runs UxPlay and the server. |
 | **Vision model** | Any OpenAI-compatible chat API that accepts images. Running a model locally is optional. |

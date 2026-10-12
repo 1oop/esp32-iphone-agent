@@ -2,7 +2,7 @@
 
 # ESP32 iPhone Agent
 
-**让 AI 操作一部真实的 iPhone：只要一块约 50 元的 ESP32，不需要开发者账号、不需要 Xcode、不用越狱。**
+**让 AI 操作一部真实的 iPhone：只要一块约 40 多元的 ESP32，不需要开发者账号、不需要 Xcode、不用越狱。**
 
 [English](README.md) · 简体中文
 
@@ -38,7 +38,7 @@ USB 鼠标加键盘。大脑可以是任何兼容 OpenAI 接口的视觉模型�
 | 电脑                     | Mac **或 Linux**       | Mac                            |
 | 手机上安装 App           | **不需要**             | 需要装测试程序                 |
 | 越狱                     | 不需要                 | 不需要                         |
-| 额外硬件                 | ESP32-S3 开发板（约 50 元） | USB 线                    |
+| 额外硬件                 | ESP32-S3 开发板（约 40 多元） | USB 线                    |
 | 任意 App（包括游戏）     | 可以（只看像素）       | 大多可以（取决于无障碍控件树） |
 
 ## 工作原理
@@ -58,7 +58,7 @@ USB 鼠标加键盘。大脑可以是任何兼容 OpenAI 接口的视觉模型�
 
 | 部件 | 说明 |
 |---|---|
-| **ESP32-S3 开发板** | 实测使用 [Seeed Studio XIAO ESP32S3](https://wiki.seeedstudio.com/cn/xiao_esp32s3_getting_started/) 裸板（约 50 元，不需要摄像头扩展板）。记得接上附带的天线：XIAO 板上没有天线，不接的话 Wi-Fi 会经常断。任何 USB-C 口直连 S3 原生 USB 的 ESP32-S3 板子都可以。 |
+| **ESP32-S3 开发板** | 实测使用 [Seeed Studio XIAO ESP32S3](https://wiki.seeedstudio.com/cn/xiao_esp32s3_getting_started/) 普通版、未焊排针（不是带摄像头的 Sense 版，也不是 Plus 版）。国内在淘宝搜“XIAO ESP32S3”就能买到，约 40 多元。任何 USB-C 口直连 S3 原生 USB 的 ESP32-S3 板子都可以。 |
 | **iPhone** | USB-C 机型直接插；Lightning 机型用 Lightning 转 USB 相机转换器。板子由手机供电。 |
 | **电脑** | macOS 或 Linux，和手机在同一个局域网；运行 UxPlay 和服务端。 |
 | **视觉模型** | 任何支持图片输入、兼容 OpenAI 接口的对话模型。本地部署是可选的。 |
