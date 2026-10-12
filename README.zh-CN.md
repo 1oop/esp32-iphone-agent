@@ -50,7 +50,7 @@ USB 鼠标加键盘。大脑可以是任何兼容 OpenAI 接口的视觉模型�
 
 | 部件 | 说明 |
 |---|---|
-| **ESP32-S3 开发板** | 实测使用 [Seeed Studio XIAO ESP32S3](https://wiki.seeedstudio.com/cn/xiao_esp32s3_getting_started/) 裸板（约 50 元，不需要摄像头扩展板）。任何 USB-C 口直连 S3 原生 USB 的 ESP32-S3 板子都可以。 |
+| **ESP32-S3 开发板** | 实测使用 [Seeed Studio XIAO ESP32S3](https://wiki.seeedstudio.com/cn/xiao_esp32s3_getting_started/) 裸板（约 50 元，不需要摄像头扩展板）。记得接上附带的天线：XIAO 板上没有天线，不接的话 Wi-Fi 会经常断。任何 USB-C 口直连 S3 原生 USB 的 ESP32-S3 板子都可以。 |
 | **iPhone** | USB-C 机型直接插；Lightning 机型用 Lightning 转 USB 相机转换器。板子由手机供电。 |
 | **电脑** | macOS 或 Linux，和手机在同一个局域网；运行 UxPlay 和服务端。 |
 | **视觉模型** | 任何支持图片输入、兼容 OpenAI 接口的对话模型。本地部署是可选的。 |
@@ -100,7 +100,8 @@ set -a && . ./.env && set +a && .venv/bin/python -m hidagent
 1. **设置 → 辅助功能 → 触控 → 辅助触控**：打开。
 2. 把板子插到手机上，屏幕上会出现一个圆形指针，网页显示控制器已连接。
 3. **控制中心 → 屏幕镜像 → iPhone Agent**，网页里出现实时画面。
-4. 在网页里打开 **手动操控 → 校准**，然后在实时画面里精确点一下指针的位置。
+4. 在网页里打开 **手动操控 → 校准**。服务端会移动指针、在实时画面里找到它，几秒内自动完成校准；
+   如果找不到指针，会提示你在画面里精确点一下指针。
 
 ### 4. 下达任务
 
@@ -112,6 +113,7 @@ set -a && . ./.env && set +a && .venv/bin/python -m hidagent
 - **实时日志**：每一个计划、思考和动作实时显示，带耗时。
 - **步骤截图墙**：每一步模型做决定时看到的截图，上面画出点按或滑动的位置，附带模型的理由和思考、执行各用了多久；
   点卡片可以放大。
+- **点按**用红色圆圈和扩散的波纹标出，滑动和笔画用黄色轨迹；**动效**开关可以关掉动画。模型标为 `precise`（点之前先确认指针位置）的点按会在日志里注明。
 - **紧急停止**（或按 <kbd>Esc</kbd>）：立即停止 Agent 并松开指针。**清空记录**：清空日志和截图墙。
 - 界面支持英文和简体中文。
 
@@ -124,6 +126,7 @@ set -a && . ./.env && set +a && .venv/bin/python -m hidagent
 | `LLM_BASE_URL` | `http://localhost:8000/v1` | 兼容 OpenAI 的接口地址 |
 | `LLM_MODEL` / `LLM_API_KEY` | — | 模型名称和 API Key |
 | `LLM_EXTRA_BODY` | `{}` | 合并进每次请求的 JSON（例如关闭模型的思考模式） |
+| `LLM_TOKEN_PARAM` | `auto` | 输出长度参数名：`max_tokens`、`max_completion_tokens`（新版 OpenAI 模型），或 `auto` 自动识别 |
 | `ACTOR_*` / `PLANNER_*` | — | 单独覆盖执行模型 / 规划模型的任意 `LLM_*` 配置 |
 | `AIRPLAY_NAME` | `iPhone Agent` | 手机"屏幕镜像"列表里显示的名字 |
 | `PORT` / `DEVICE_PORT` | `8890` / `7300` | 网页端口 / 板子连接的端口 |
@@ -162,7 +165,7 @@ LLM_EXTRA_BODY='{"chat_template_kwargs": {"enable_thinking": false}}'
 
 ## 板子协议
 
-板子本身不含任何逻辑。服务端通过 TCP 每行发一条命令，板子回复 `ok` 或 `err <原因>`。
+板子本身不含任何逻辑。连上时先发送 `hello <上次重启原因> <开机毫秒数>`，之后服务端通过 TCP 每行发一条命令，板子回复 `ok` 或 `err <原因>`。
 
 | 命令 | 作用 |
 |---|---|
@@ -174,7 +177,7 @@ LLM_EXTRA_BODY='{"chat_template_kwargs": {"enable_thinking": false}}'
 | `type <text>` | 输入 ASCII 文字 |
 | `key <combo>` | 按键，例如 `enter`、`cmd+h`、`cmd+space` |
 
-Wi-Fi 断开时，板子会松开所有按键并自动重连。
+Wi-Fi 断开时，板子会松开所有按键并自动重连。手机锁屏时 USB 会休眠：板子会先尝试唤醒手机，唤醒不了就立刻回复 `err phone usb asleep`，不会卡住等待。万一板子没有响应，看门狗会让它自动重启。
 
 ## 目录结构
 
@@ -187,7 +190,8 @@ server/     Agent、网页界面、屏幕采集和板子连接（Python，FastAP
 ## 路线图
 
 - [ ] 测试基于 DiffusionGemma 的纯本地方案（`server/serve/` 里有实验性的 OpenAI 兼容服务）
-- [ ] 指针校正改为按需执行，让点按更快
+- [ ] 支持横屏 App（目前坐标和校准都按竖屏计算）
+- [ ] 非 ASCII 文字输入（例如通过 iOS 拼音键盘输入中文）
 - [ ] 更多常用 App 的示例任务
 
 ## 限制
@@ -196,6 +200,7 @@ server/     Agent、网页界面、屏幕采集和板子连接（Python，FastAP
 - 手机锁屏后镜像会断开，Agent 工作时请关闭自动锁定。
 - 键盘只支持 ASCII 输入。
 - 修改辅助触控的跟踪速度后需要重新校准。
+- 暂不支持横屏 App：在横屏界面里的点按和绘图位置会偏。
 - 在有多个网卡的 Linux 机器上，如果手机列表里看不到接收端，把 Avahi（mDNS）限制在手机所在网络的网卡上。
 
 ## 合理使用

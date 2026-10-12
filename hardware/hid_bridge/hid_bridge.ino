@@ -6,9 +6,11 @@
 //   scroll <v> <h> | type <ascii text> | key <combo, e.g. cmd+h, enter>
 
 #include <WiFi.h>
+#include <esp_task_wdt.h>
 #include "USB.h"
 #include "USBHIDMouse.h"
 #include "USBHIDKeyboard.h"
+#include "tusb.h"
 #include "secrets.h"  // WIFI_SSID, WIFI_PASS, SERVER_HOST, SERVER_PORT
 
 const int STEP = 10;      // max pointer delta per report while moving
@@ -17,6 +19,8 @@ const int HOME_REPORTS = 50;
 #ifndef DEBUG_SERIAL
 #define DEBUG_SERIAL 0  // 1: echo every command over USB serial (needs CDCOnBoot=cdc)
 #endif
+
+const int WATCHDOG_MS = 8000;  // a hung loop (e.g. blocked USB) reboots the board instead of staying offline
 
 USBHIDMouse mouse;
 USBHIDKeyboard keyboard;
@@ -61,6 +65,16 @@ bool pressCombo(String combo) {
   return true;
 }
 
+// A locked or sleeping phone suspends USB; sending HID reports then can stall. Ask it to wake up instead,
+// and report "asleep" right away if it does not, so the board never hangs.
+bool usbReady() {
+  if (tud_suspended()) {
+    tud_remote_wakeup();
+    for (int i = 0; i < 50 && tud_suspended(); i++) delay(10);
+  }
+  return tud_mounted() && !tud_suspended();
+}
+
 String run(const String &line) {
   int sp = line.indexOf(' ');
   String cmd = sp < 0 ? line : line.substring(0, sp);
@@ -69,6 +83,7 @@ String run(const String &line) {
   sscanf(arg.c_str(), "%ld %ld", &a, &b);
 
   if (cmd == "ping") return "ok";
+  if (!usbReady()) return "err phone usb asleep (unlock the phone)";
   if (cmd == "home") {  // slam the pointer into the top-left corner
     for (int i = 0; i < HOME_REPORTS; i++) { mouse.move(-127, -127); delay(2); }
     return "ok";
@@ -83,6 +98,18 @@ String run(const String &line) {
   return "err unknown command";
 }
 
+const char *resetReason() {
+  switch (esp_reset_reason()) {
+    case ESP_RST_POWERON: return "power-on";
+    case ESP_RST_BROWNOUT: return "brownout";
+    case ESP_RST_TASK_WDT: case ESP_RST_INT_WDT: case ESP_RST_WDT: return "watchdog";
+    case ESP_RST_PANIC: return "crash";
+    case ESP_RST_SW: return "software";
+    case ESP_RST_USB: return "usb";
+    default: return "other";
+  }
+}
+
 void setup() {
 #if DEBUG_SERIAL
   Serial.begin(115200);
@@ -91,20 +118,27 @@ void setup() {
   keyboard.begin();
   USB.productName("HID Bridge");
   USB.begin();
+  esp_task_wdt_config_t wdt = {.timeout_ms = WATCHDOG_MS, .idle_core_mask = 0, .trigger_panic = true};
+  esp_task_wdt_reconfigure(&wdt);
+  esp_task_wdt_add(NULL);
   WiFi.setHostname("hid-bridge");
   WiFi.setSleep(false);  // modem sleep adds ~100 ms per command
+  WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
 }
 
 void loop() {
-  if (WiFi.status() != WL_CONNECTED) { mouse.release(MOUSE_LEFT); delay(500); return; }
+  esp_task_wdt_reset();
+  if (WiFi.status() != WL_CONNECTED) { mouse.release(MOUSE_LEFT); delay(50); return; }  // auto-reconnects
   if (!server.connected()) {
     mouse.release(MOUSE_LEFT);  // a gesture cut off mid-way must not leave the button held (long press)
     keyboard.releaseAll();
-    if (!server.connect(SERVER_HOST, SERVER_PORT)) { delay(2000); return; }
+    if (!server.connect(SERVER_HOST, SERVER_PORT, 1000)) { delay(200); return; }  // retry fast: show up at once
     server.setNoDelay(true);
+    server.printf("hello %s %lu\n", resetReason(), millis());  // why the board last restarted, and uptime
 #if DEBUG_SERIAL
-    Serial.printf("connected to %s:%d as %s\n", SERVER_HOST, SERVER_PORT, WiFi.localIP().toString().c_str());
+    Serial.printf("connected to %s:%d as %s after %lu ms\n", SERVER_HOST, SERVER_PORT,
+                  WiFi.localIP().toString().c_str(), millis());
 #endif
   }
   if (server.available()) {

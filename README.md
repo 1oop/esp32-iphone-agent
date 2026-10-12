@@ -55,7 +55,7 @@ uses the same paths a person uses — the screen and a pointer — so the phone 
 
 | Part | Notes |
 |---|---|
-| **ESP32-S3 board** | Tested with a bare [Seeed Studio XIAO ESP32S3](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/) (~$7, no camera add-on needed). Any ESP32-S3 board whose USB-C port is wired to the S3's native USB works. |
+| **ESP32-S3 board** | Tested with a bare [Seeed Studio XIAO ESP32S3](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/) (~$7, no camera add-on needed); attach the antenna that comes with it, as the XIAO has no on-board antenna and Wi-Fi drops often without it. Any ESP32-S3 board whose USB-C port is wired to the S3's native USB works. |
 | **iPhone** | USB-C models plug in directly. Lightning models need a Lightning to USB Camera Adapter. The phone powers the board. |
 | **Computer** | macOS or Linux, on the same network as the phone; runs UxPlay and the server. |
 | **Vision model** | Any OpenAI-compatible chat API that accepts images. Running a model locally is optional. |
@@ -106,7 +106,8 @@ Open `http://<computer-ip>:8890` in a browser.
 1. **Settings → Accessibility → Touch → AssistiveTouch**: turn it on.
 2. Plug the board into the phone. A round pointer appears; the web page shows *controller connected*.
 3. **Control Center → Screen Mirroring → iPhone Agent**. The live screen appears in the web page.
-4. In the web page, open **Manual controls → Calibrate**, then click exactly on the pointer in the live screen.
+4. In the web page, open **Manual controls → Calibrate**. The server moves the pointer, finds it on the live screen
+   and calibrates itself in a few seconds; if it cannot see the pointer, it asks you to click exactly on it.
 
 ### 4. Give it a task
 
@@ -118,6 +119,8 @@ Type a goal (for example *"Open Settings and go to Wi-Fi"*) and press **Start**,
 - **Live log** — every plan, thought and action as it happens, with timings.
 - **Step wall** — the screenshot the model decided on for every step, with its tap or swipe drawn on top, plus the
   model's reasoning and how long thinking and acting took. Click a card to zoom in.
+- **Taps** are marked with a red ring and a spreading ripple, swipes and strokes with a yellow path; the **Motion** switch
+  turns the animation off. Taps the model marked `precise` (pointer checked before tapping) are labelled in the log.
 - **Emergency stop** (or <kbd>Esc</kbd>) stops the agent and releases the pointer. **Clear history** empties the log.
 - English and Simplified Chinese interface.
 
@@ -130,6 +133,7 @@ Set in `server/.env` (see [`.env.example`](server/.env.example)):
 | `LLM_BASE_URL` | `http://localhost:8000/v1` | OpenAI-compatible endpoint |
 | `LLM_MODEL` / `LLM_API_KEY` | — | Model name and API key |
 | `LLM_EXTRA_BODY` | `{}` | JSON merged into every request (e.g. to turn off a model's thinking mode) |
+| `LLM_TOKEN_PARAM` | `auto` | Token-limit field: `max_tokens`, `max_completion_tokens` (newer OpenAI models), or `auto` to detect |
 | `ACTOR_*` / `PLANNER_*` | — | Per-role overrides of any `LLM_*` variable |
 | `AIRPLAY_NAME` | `iPhone Agent` | Receiver name in the phone's Screen Mirroring list |
 | `PORT` / `DEVICE_PORT` | `8890` / `7300` | Web UI port / port the board connects to |
@@ -169,7 +173,8 @@ Set `HIDAGENT_DEBUG=1` to log every board command with its latency and to save o
 
 ## Board protocol
 
-The board holds no logic. The server sends one command per line over TCP; the board answers `ok` or `err <reason>`.
+The board holds no logic. On connecting it sends `hello <last reset reason> <uptime ms>`; then the server sends one
+command per line over TCP and the board answers `ok` or `err <reason>`.
 
 | Command | Effect |
 |---|---|
@@ -181,7 +186,9 @@ The board holds no logic. The server sends one command per line over TCP; the bo
 | `type <text>` | Type ASCII text |
 | `key <combo>` | Press keys, e.g. `enter`, `cmd+h`, `cmd+space` |
 
-If the Wi-Fi link drops, the board releases all buttons and reconnects on its own.
+If the Wi-Fi link drops, the board releases all buttons and reconnects on its own. While the phone is locked, its USB
+port sleeps: the board then tries to wake it and otherwise answers `err phone usb asleep` instead of waiting. A watchdog
+restarts the board if it ever stops responding.
 
 ## Project layout
 
@@ -194,7 +201,8 @@ server/     agent, web UI, screen capture and board link (Python, FastAPI)
 ## Roadmap
 
 - [ ] Test a fully local setup with DiffusionGemma (`server/serve/` has an experimental OpenAI-compatible server)
-- [ ] Correct the pointer only when needed, to make taps faster
+- [ ] Landscape apps (screen coordinates and calibration assume portrait)
+- [ ] Non-ASCII text input (e.g. Chinese through the iOS pinyin keyboard)
 - [ ] More example tasks across popular apps
 
 ## Limitations
@@ -203,6 +211,7 @@ server/     agent, web UI, screen capture and board link (Python, FastAPI)
 - Mirroring stops when the phone locks; keep auto-lock off while the agent works.
 - Keyboard input is ASCII only.
 - Re-calibrate after changing AssistiveTouch tracking speed.
+- Landscape apps are not supported yet: drawings and taps there land in the wrong place.
 - On Linux machines with several network interfaces, limit Avahi (mDNS) to the interface on the phone's network
   if the phone does not list the receiver.
 
