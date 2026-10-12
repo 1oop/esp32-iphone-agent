@@ -50,3 +50,45 @@ def test_circle_is_closed_and_round_on_a_tall_screen():
     assert pts[0] == pytest.approx(pts[-1])
     for x, y in pts:  # equal radius in pixels: y offsets shrink by the aspect ratio
         assert math.hypot(x - 0.5, (y - 0.5) / aspect) == pytest.approx(0.2)
+
+
+def test_actor_may_not_repeat_a_move_that_changed_nothing():
+    import asyncio
+
+    from hidagent.agent import Agent
+    from hidagent.debug import Trace
+
+    class Screen:
+        live, frame, aspect = True, b"jpeg", 0.46
+
+    class Actor:
+        model = "fake"
+        def __init__(self):
+            self.prompts = []
+        async def chat(self, system, text, image=None, max_tokens=600, temperature=0):
+            self.prompts.append(text)
+            return "THINK: again\nDO: swipe 382 253 382 150" if len(self.prompts) == 1 else "THINK: other\nDO: tap 1 2"
+
+    actor = Actor()
+    agent = Agent(phone=None, screen=Screen(), actor=actor, planner=actor, trace=Trace(None))
+    agent.steps = [{"action": "swipe", "x1": 382, "y1": 253, "x2": 382, "y2": 150, "changed": False}]
+    acts = asyncio.run(agent._next_actions())
+    assert acts[0]["action"] == "tap"
+    assert "changed nothing" in actor.prompts[1]
+
+
+def test_repeating_a_move_that_keeps_changing_the_screen_is_not_stuck():
+    from hidagent.agent import Agent
+    from hidagent.debug import Trace
+
+    agent = Agent(phone=None, screen=None, actor=None, planner=None, trace=Trace(None))
+    swipe = {"action": "swipe", "x1": 500, "y1": 800, "x2": 500, "y2": 400}
+    agent.steps = [{**swipe, "changed": True}, {**swipe, "changed": True}]
+    assert not agent._repeating(dict(swipe))
+    agent.steps[-1]["changed"] = False  # reached the end of the list
+    assert agent._repeating(dict(swipe))
+
+
+def test_precise_tap_flag():
+    assert parse_command("tap 120 640 precise") == {"action": "tap", "x": 120, "y": 640, "precise": True}
+    assert "precise" not in parse_command("tap 120 640")

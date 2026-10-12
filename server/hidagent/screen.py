@@ -18,6 +18,7 @@ class Screen:
         self.frame: bytes | None = None
         self.updated = 0.0
         self._proc = None
+        self._clients_at, self._clients_n = 0.0, None
         self._stopping = False
 
     def start(self) -> None:
@@ -47,9 +48,38 @@ class Screen:
 
     @property
     def live(self) -> bool:
-        # AirPlay sends no frames while the screen is still, so allow a long quiet gap
         running = self._proc is not None and self._proc.poll() is None
-        return running and self.frame is not None and time.time() - self.updated < 90
+        if not running or self.frame is None:
+            return False
+        clients = self._clients()
+        if clients is not None:  # Linux: is a phone connected to UxPlay right now?
+            return clients > 0
+        return time.time() - self.updated < 90  # elsewhere: AirPlay sends no frames while the screen is still
+
+    def _clients(self) -> int | None:
+        """Established TCP connections of the UxPlay process (a mirroring phone keeps some open).
+
+        Read from /proc, cached for a second; None where /proc is not available (e.g. macOS).
+        """
+        if time.time() - self._clients_at < 1:
+            return self._clients_n
+        try:
+            fds = os.listdir(f"/proc/{self._proc.pid}/fd")
+            inodes = set()
+            for fd in fds:
+                link = os.readlink(f"/proc/{self._proc.pid}/fd/{fd}")
+                if link.startswith("socket:["):
+                    inodes.add(link[8:-1])
+            n = 0
+            for table in ("/proc/net/tcp", "/proc/net/tcp6"):
+                with open(table) as f:
+                    for row in f.readlines()[1:]:
+                        cols = row.split()
+                        n += cols[3] == "01" and cols[9] in inodes  # 01 = ESTABLISHED
+        except OSError:
+            n = None
+        self._clients_at, self._clients_n = time.time(), n
+        return n
 
     @property
     def aspect(self) -> float:
@@ -60,7 +90,7 @@ class Screen:
             return 9 / 19.5
         return int.from_bytes(f[i + 7:i + 9], "big") / int.from_bytes(f[i + 5:i + 7], "big")
 
-    async def settled(self, quiet: float = 0.5, least: float = 0.4, most: float = 4) -> None:
+    async def settled(self, quiet: float = 0.35, least: float = 0.25, most: float = 4) -> None:
         """Wait until the screen stops changing (AirPlay only sends frames on change)."""
         started = time.time()
         await asyncio.sleep(least)

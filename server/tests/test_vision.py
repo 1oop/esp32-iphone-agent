@@ -25,7 +25,7 @@ def screen(pointer_at=None, button=False) -> bytes:
 
 
 def test_pointer_move_is_not_a_screen_change():
-    assert not changed(screen((260, 856)), screen((272, 856)))
+    assert not changed(screen((260, 856)), screen((272, 856)), ignore=((260 / W, 856 / H), (272 / W, 856 / H)))
 
 
 def test_new_content_is_a_screen_change():
@@ -47,3 +47,28 @@ def test_pointer_is_found_from_a_nudge():
 def test_pointer_not_found_when_nothing_moved():
     frame = screen((262, 856))
     assert pointer(frame, frame, near=(0.5, 0.8), shift=12 / W) is None
+
+
+def checkmark_screen(checked: bool, pointer_at=(100, 500)) -> bytes:
+    img = Image.open(io.BytesIO(screen(pointer_at))).convert("RGB")
+    if checked:
+        ImageDraw.Draw(img).line([(430, 495), (438, 505), (452, 485)], fill=(255, 149, 0), width=4)
+    buf = io.BytesIO()
+    img.save(buf, "JPEG", quality=75)
+    return buf.getvalue()
+
+
+def test_small_checkmark_counts_as_a_change():
+    assert changed(checkmark_screen(False), checkmark_screen(True))
+
+
+def test_masked_pointer_move_is_not_a_change():
+    before, after = checkmark_screen(False, (100, 500)), checkmark_screen(False, (300, 500))
+    assert not changed(before, after, ignore=((100 / W, 500 / H), (300 / W, 500 / H)))
+
+
+def test_pointer_far_from_the_target_is_found_with_a_full_screen_search():
+    before, after = screen((354, 136)), screen((366, 136))
+    assert pointer(before, after, near=(0.9, 0.1), shift=12 / W) is None  # outside the window near the target
+    found = pointer(before, after, near=(0.5, 0.5), shift=12 / W, reach=(0.5, 0.5))
+    assert found[0] * W == pytest.approx(354, abs=3) and found[1] * H == pytest.approx(136, abs=3)
