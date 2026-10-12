@@ -32,7 +32,7 @@ agent = Agent(phone, screen, LLM.from_env("ACTOR"), LLM.from_env("PLANNER"),
 async def lifespan(_):
     server = await device.serve("0.0.0.0", int(os.environ.get("DEVICE_PORT", 7300)))
     screen.start()
-    awake = asyncio.create_task(device.keep_awake())
+    awake = asyncio.create_task(device.keep_awake(screen=screen))
     yield
     awake.cancel()
     screen.stop()
@@ -40,7 +40,16 @@ async def lifespan(_):
 
 
 app = FastAPI(lifespan=lifespan)
-app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
+class Static(StaticFiles):
+    """Static files that browsers re-check on every load, so a new version shows up on refresh."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/static", Static(directory=Path(__file__).parent / "static"), name="static")
 
 
 class Point(BaseModel):
@@ -143,7 +152,11 @@ async def raw(t: Text):
 
 @app.post("/api/calibrate/start")
 async def calibrate_start():
-    return await act(phone.start_calibration())
+    """Calibrate the pointer. {"auto": true}: done by itself; otherwise the user clicks the pointer next."""
+    try:
+        return {"ok": True, "auto": await phone.start_calibration(), "span": phone.span}
+    except (DeviceError, RuntimeError) as e:
+        raise HTTPException(409, str(e)) from e
 
 
 @app.post("/api/calibrate/finish")
