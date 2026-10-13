@@ -213,6 +213,14 @@ server/     agent, web UI, screen capture and board link (Python, FastAPI)
 - [ ] Non-ASCII text input (e.g. Chinese through the iOS pinyin keyboard)
 - [ ] More example tasks across popular apps
 
+### Exploring: drop the computer
+
+Right now the board is just the hands. The brain and the eyes run on a separate computer.
+
+The next idea is to drop the computer. Swap the ESP32 for a small board that can run Linux, and run the whole loop on it: see the screen, decide, tap. The phone would only need that one board, which you could carry in your pocket. The board could talk to the phone over USB or Bluetooth, and call a local or cloud model.
+
+These are directions, not promises. If you're interested, or you've tried something similar, open an issue.
+
 ## Limitations
 
 - iOS does not mirror some screens (passcode entry, Apple Pay, DRM video); the agent cannot see them.
