@@ -25,6 +25,12 @@
 
 *"设置早上 8:00 的闹钟，每周一和周二重复，然后保存"*：Agent 退出自己的 App，打开时钟，在滚轮里输入时间，勾选日期并保存。（照片拍自 v0.1.0，任务相同。）
 
+<p align="center"><img src="docs/images/app-home.png" alt="ESP32 Agent App：左边是真机，右边是 Agent 通过 AirPlay 看到的画面" width="80%"></p>
+
+<p align="center"><img src="docs/images/app-calibration.png" alt="指针校准：真机画面与板子镜像画面" width="80%"></p>
+
+*左：真机；右：Agent 通过板子的 AirPlay 镜像看到的画面。第二张是指针校准。*
+
 ## 工作原理
 
 ```

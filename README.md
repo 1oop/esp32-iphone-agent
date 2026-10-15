@@ -27,6 +27,12 @@ Demo video and updates: [X @iamhenryyuan](https://x.com/iamhenryyuan) · [YouTub
 *"Set an alarm for 8:00 AM that repeats every Monday and Tuesday, then save it"*: the agent leaves its own app,
 opens Clock, types the time into the wheel, ticks the days and saves. (Photo from v0.1.0; the task is the same.)
 
+<p align="center"><img src="docs/images/app-home.png" alt="The ESP32 Agent app: the iPhone (left) and its own screen as the agent sees it through AirPlay (right)" width="80%"></p>
+
+<p align="center"><img src="docs/images/app-calibration.png" alt="Pointer calibration, seen from the phone and through the board" width="80%"></p>
+
+*Left: the real phone. Right: what the agent sees through the board's AirPlay mirror. The second shot is the pointer calibration.*
+
 ## How it works
 
 ```
