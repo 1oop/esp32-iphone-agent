@@ -1,0 +1,20 @@
+// Signing: put your team in Config/Local.xcconfig (gitignored), e.g.
+//   DEVELOPMENT_TEAM = ABCDE12345
+
+// Set // Bundle ID of the app; the widget extension and tests append a suffix, the App Group is group.<this>.
+// Set your own in Local.xcconfig.
+IA_BUNDLE_ID = com.example.esp32agent
+
+IA_ENTITLEMENTS = IPhoneAgent/IPhoneAgent.entitlements in Local.xcconfig
+// once Xcode is signed in, to enable one-tap joining of the board's hotspot.
+IA_ENTITLEMENTS =
+// Also set IA_WIDGET_ENTITLEMENTS = AgentActivity/AgentActivity.entitlements so the widgets share the App Group.
+IA_WIDGET_ENTITLEMENTS =
+
+// Optional LLM preset for your own builds, set in Local.xcconfig (write "//" as "/$()/"):
+//   IA_PRESET_BASE_URL = https:/$()/example.com/v1
+IA_PRESET_BASE_URL =
+IA_PRESET_MODEL =
+IA_PRESET_KEY =
+
+#include? "Local.xcconfig"
