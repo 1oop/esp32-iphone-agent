@@ -121,7 +121,6 @@ Debugging without the phone app: `hardware/tools/board_test.py` plays the app ov
 ## Roadmap
 
 - [x] Drop the computer: the board mirrors and clicks, the app on the phone thinks
-- [ ] App Store / TestFlight build (leave the app with the HID Home key instead of a private API)
 - [ ] Landscape apps (coordinates and calibration assume portrait)
 - [ ] Non-ASCII text input (e.g. Chinese through the iOS pinyin keyboard)
 - [ ] Faster steps: several actions per model call, pointer checks only when needed
